@@ -2,31 +2,77 @@ package javaFXTests;
 
 import javaFXTests.chat.Message;
 import javaFXTests.chat.User;
+import javaFXTests.chat.noimpl.IoManger;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
-import javafx.scene.text.TextBuilder;
 import javafx.util.Callback;
 
 import java.net.URL;
 import java.text.DateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
-import java.util.ResourceBundle;
+import java.util.*;
+import java.util.function.Consumer;
 
 public class ControllerTVImpl implements GUIController {
+
+    public ControllerTVImpl(IoManger ioManger, ControllerDAO controllerDAO) {
+
+        System.out.println("controller constructor");
+        this.controllerDAO = controllerDAO;
+        this.ioManger = ioManger;
+        //Setting parameters for ioManager
+        Consumer<Message> receiveMessageHandler = this::addMessageToMessageList;
+
+        ioManger.setRecieveMessageHandler(receiveMessageHandler);
+
+        Consumer<User> userAdded = this::addUserToList;
+
+        ioManger.setUserAddedHandler(userAdded);
+
+        ioManger.setUserStateChangeHandler(this::updateUser);
+    }
+
+    private ControllerDAO controllerDAO;
+
+    IoManger ioManger;
+
+    User curentUser;
+
+    User currentOpponent;
+
+    @FXML
+    TextField messageTextField;
+
+    @FXML
+    Button sendMessageButton;
 
     @FXML
     TableView<User> usersTableView;
 
     @FXML
     ListView<Message> messageListView;
+
+    @FXML
+    TableColumn<User, Image> icon;
+
+    @FXML
+    TableColumn<User, String> name;
+
+    @FXML
+    TableColumn<User, Boolean> online;
+
+    private ObservableList<User> userObservableList;
+
+    private ObservableList<Message> currentMessageList;
 
     /**
      * Called to initialize a controller after its root element has been
@@ -38,32 +84,28 @@ public class ControllerTVImpl implements GUIController {
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+
+        currentMessageList = FXCollections.observableArrayList();
+
+        showChooseUserDialog();
+
         drawUserList();
 
-        drawMessageList();
+        addActionListenerForUserList();
 
-        usersTableView.setStyle("-fx-table-cell-border-color: transparent;");
-
+        addHandleToButton(sendMessageButton);
     }
 
     public void drawUserList() {
 
-        TableColumn<User, Image> icon = new TableColumn<>("Icon");
-        icon.setCellValueFactory(new PropertyValueFactory<User, Image>("icon"));
-        icon.setPrefWidth(60);
+        //Setting table initial
+        icon.setCellValueFactory(new PropertyValueFactory<>("icon"));
 
-        TableColumn<User, String> name = new TableColumn<>("Name");
-        name.setCellValueFactory(new PropertyValueFactory<User, String>("name"));
-        name.setPrefWidth(50);
+        name.setCellValueFactory(new PropertyValueFactory<>("name"));
 
-        TableColumn<User, Integer> id = new TableColumn<>("Id");
-        id.setCellValueFactory(new PropertyValueFactory<User, Integer>("id"));
-        id.setPrefWidth(5);
+        online.setCellValueFactory(new PropertyValueFactory<>("online"));
 
-        TableColumn<User, Boolean> online = new TableColumn<>("Online");
-        online.setCellValueFactory(new PropertyValueFactory<User, Boolean>("online"));
-        online.setPrefWidth(60);
-
+        //Setting fabrics
         icon.setCellFactory(param -> new TableCell<User, Image>() {
             @Override
             public void updateItem(Image item, boolean empty) {
@@ -78,34 +120,42 @@ public class ControllerTVImpl implements GUIController {
             }
         });
 
+        name.setCellFactory(param -> new TableCell<User, String>() {
+            @Override
+            public void updateItem(String item, boolean empty) {
+                if (item != null) {
+                    setText(item);
+                    setAlignment(Pos.CENTER_LEFT);
+                }
+            }
+        });
+
         online.setCellFactory(param -> new TableCell<User, Boolean>() {
             @Override
             public void updateItem(Boolean item, boolean empty) {
                 if (item != null) {
                     ImageView imageview = new ImageView();
-                    imageview.setFitHeight(50);
-                    imageview.setFitWidth(50);
+                    imageview.setFitHeight(12);
+                    imageview.setFitWidth(12);
                     if (item) {
                         imageview.setImage(new Image("online.png"));
                     } else {
                         imageview.setImage(new Image("offline.png"));
                     }
+                    setAlignment(Pos.CENTER);
+
                     setGraphic(imageview);
                 }
             }
         });
 
-        usersTableView.getColumns().clear();
-
-        usersTableView.getColumns().addAll(icon, name, online);
-
-        usersTableView.setItems(App.getUserListModel().getUserList());
+        //Adding data
+        usersTableView.setItems(userObservableList);
     }
 
     public void drawMessageList() {
 
         messageListView.setCellFactory(new Callback<ListView<Message>, ListCell<Message>>() {
-
             @Override
             public ListCell<Message> call(ListView<Message> arg0) {
                 return new ListCell<Message>() {
@@ -114,7 +164,7 @@ public class ControllerTVImpl implements GUIController {
                         super.updateItem(item, bln);
                         if (item != null) {
                             Text label = new Text(item.getSender().getName() + "  ( " + getShortDateString(item.getDate()) + " )  ");
-                            label.setFont(Font.font ("Comic", 10));
+                            label.setFont(Font.font("Comic", 10));
                             VBox vBox = new VBox((label), new Text(item.getText()));
                             vBox.setSpacing(10);
                             setGraphic(vBox);
@@ -123,8 +173,7 @@ public class ControllerTVImpl implements GUIController {
                 };
             }
         });
-
-        messageListView.setItems(App.getMessageHistory().getMessageList());
+        messageListView.setItems(currentMessageList);
     }
 
     /**
@@ -164,5 +213,122 @@ public class ControllerTVImpl implements GUIController {
         return result;
     }
 
+
+    /**
+     * Initializing data access object for controller and setting parameters to iomanager
+     *
+     * @param controllerDAO corresponding dao
+     * @param ioManger      corresponding iomanager
+     */
+    @Override
+    public void initController(ControllerDAO controllerDAO, IoManger ioManger) {
+
+    }
+
+    /**
+     * Adding corresponding message to list of other messages
+     *
+     * @param message corresponding message
+     */
+    @Override
+    public void addMessageToMessageList(Message message) {
+        assert currentMessageList != null;
+        assert message != null;
+        currentMessageList.add(message);
+    }
+
+    /**
+     * Adding text to message list without sender and receiver
+     *
+     * @param text corresponding text
+     */
+    @Override
+    public void addTextToMessageList(String text) {
+
+    }
+
+    /**
+     * Updating user info
+     *
+     * @param userId   id of user need to update
+     * @param newValue new value of user info
+     */
+    @Override
+    public void updateUser(int userId, User newValue) {
+        for(User user : userObservableList){
+            if(user.getId() == userId){
+                user = newValue;//TODO Maybe need to use setters??
+            }
+        }
+    }
+
+    /**
+     * Adding new user to userslist
+     *
+     * @param user corresponding user
+     */
+    @Override
+    public void addUserToList(User user) {
+        assert user != null;
+        userObservableList.add(user);
+    }
+
+    /**
+     * Delete User from usersList
+     *
+     * @param id id of user
+     */
+    @Override
+    public void deleteUserFromList(int id) {
+        ioManger.setUserRemovedHandler(id);//TODO Why ioManager not handling remove Handler??
+    }
+
+    private void addHandleToButton(Button button) {
+        button.addEventHandler(MouseEvent.MOUSE_ENTERED, e -> {
+            try {
+                ioManger.sendMessage(currentOpponent, messageTextField.getText());
+            } catch (Exception e1) {
+                addTextToMessageList(messageTextField.getText());
+            }
+        });
+    }
+
+    public void showChooseUserDialog() {
+        userObservableList = controllerDAO.getUserListModel().getUserList();
+
+        List<String> choices = new ArrayList<>();
+
+        for (User user : userObservableList) {
+            choices.add(user.getName());
+        }
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(choices.get(0), choices);
+        dialog.setTitle("Choice Dialog");
+        dialog.setHeaderText("Choice user name dialog");
+        dialog.setContentText("Choose your name:");
+
+        Optional<String> result = dialog.showAndWait();
+
+        result.ifPresent(letter -> {
+            for (User user : userObservableList) {
+                if (letter.equals(user.getName())) {
+                    curentUser = user;
+                }
+            }
+        });
+
+        userObservableList.remove(curentUser);
+    }
+
+    private void addActionListenerForUserList() {
+        usersTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (newSelection != null) {
+                currentOpponent = usersTableView.getSelectionModel().getSelectedItem();
+                //Refresh message list
+                currentMessageList = controllerDAO.getMessageHistory(curentUser, currentOpponent).getMessageList();
+                drawMessageList();
+            }
+        });
+    }
 
 }

@@ -8,7 +8,9 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.util.Date;
 
@@ -22,7 +24,36 @@ public class App extends Application {
     static MessageHistory messageHistory;
 
     @Override
-    public void start(Stage primaryStage) throws Exception{
+    public void start(Stage stage) throws Exception{
+
+        GUIController guiController =
+                new ControllerTVImpl(new IOmanagerImpl(),new ControllerDAOImpl());
+
+        FXMLLoader loader = new FXMLLoader(getClass().getResource(
+                        "/sampleTableView.fxml" ));
+        loader.setController(guiController);
+
+        stage.initStyle(StageStyle.DECORATED);
+        stage.setScene(new Scene(loader.load()));
+        stage.setTitle("Hello World");
+        stage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    public static UserListModelImpl getUserListModel() {
+        return userListModel;
+    }
+
+    public static MessageHistory getMessageHistory() {
+        return messageHistory;
+    }
+
+    public static ControllerDAO getTestData(){
+        ControllerDAO controllerDAO = new ControllerDAOImpl();
+
         ObservableList<User> userObservableList = FXCollections.observableArrayList();
         userListModel = new UserListModelImpl(userObservableList);
         User user1 = new UserImpl("1 name",1,true,new Image("avatar1.jpg"));
@@ -39,22 +70,6 @@ public class App extends Application {
         messages.add(new MessageImpl(new Date(),"Hi all",user1,user2));
         messages.add(new MessageImpl(new Date(),"Hi hi",user2,user1));
 
-        Parent root = FXMLLoader.load(getClass().getResource("/sampleTableView.fxml"));
-        primaryStage.setTitle("Hello World");
-        primaryStage.setScene(new Scene(root));
-        primaryStage.show();
-        userObservableList.set(1, new UserImpl("2 name",2,false,new Image("avatar2.jpg")));
-    }
-
-    public static void main(String[] args) {
-        launch(args);
-    }
-
-    public static UserListModelImpl getUserListModel() {
-        return userListModel;
-    }
-
-    public static MessageHistory getMessageHistory() {
-        return messageHistory;
+        return controllerDAO;
     }
 }

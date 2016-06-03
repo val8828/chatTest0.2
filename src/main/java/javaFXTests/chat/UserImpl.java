@@ -3,7 +3,7 @@ package javaFXTests.chat;
 import javafx.scene.image.Image;
 
 /**
- * Created by Valeee on 30.05.2016.
+ *
  */
 public class UserImpl implements User {
     String name;
