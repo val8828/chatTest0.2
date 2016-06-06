@@ -143,7 +143,7 @@ public class MusicTable extends Application{
         text.setFont(new Font(20)); 
         
         //Table
-//        TableView table = drawUserList();
+//        TableView table = initializeUserList();
 //        table.setLayoutX(20); table.setLayoutY(20);
 //
 //        adding all components

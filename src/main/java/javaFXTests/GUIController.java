@@ -9,12 +9,6 @@ import javafx.fxml.Initializable;
  * Main controller of application
  */
 public interface GUIController extends Initializable {
-    /**
-     * Initializing data access object for controller and setting parameters to iomanager
-     * @param controllerDAO corresponding dao
-     * @param ioManger corresponding iomanager
-     */
-    void initController(ControllerDAO controllerDAO, IoManger ioManger);
 
     /**
      * Adding corresponding message to list of other messages
@@ -26,7 +20,7 @@ public interface GUIController extends Initializable {
      * Adding text to message list without sender and receiver
      * @param text corresponding text
      */
-    void addTextToMessageList(String text);
+    void sendMessage(String text);
 
     /**
      * Updating user info

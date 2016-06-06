@@ -81,7 +81,7 @@ public class ControllerImpl implements GUIController {
      * @param text corresponding text
      */
     @Override
-    public void addTextToMessageList(String text) {
+    public void sendMessage(String text) {
 
     }
 

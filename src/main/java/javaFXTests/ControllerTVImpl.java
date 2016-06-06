@@ -26,9 +26,9 @@ public class ControllerTVImpl implements GUIController {
 
     public ControllerTVImpl(IoManger ioManger, ControllerDAO controllerDAO) {
 
-        System.out.println("controller constructor");
         this.controllerDAO = controllerDAO;
         this.ioManger = ioManger;
+
         //Setting parameters for ioManager
         Consumer<Message> receiveMessageHandler = this::addMessageToMessageList;
 
@@ -89,14 +89,16 @@ public class ControllerTVImpl implements GUIController {
 
         showChooseUserDialog();
 
-        drawUserList();
+        initializeUserList();
+
+        initializeMessageList();
 
         addActionListenerForUserList();
 
         addHandleToButton(sendMessageButton);
     }
 
-    public void drawUserList() {
+    public void initializeUserList() {
 
         //Setting table initial
         icon.setCellValueFactory(new PropertyValueFactory<>("icon"));
@@ -153,7 +155,7 @@ public class ControllerTVImpl implements GUIController {
         usersTableView.setItems(userObservableList);
     }
 
-    public void drawMessageList() {
+    private void initializeMessageList() {
 
         messageListView.setCellFactory(new Callback<ListView<Message>, ListCell<Message>>() {
             @Override
@@ -213,18 +215,6 @@ public class ControllerTVImpl implements GUIController {
         return result;
     }
 
-
-    /**
-     * Initializing data access object for controller and setting parameters to iomanager
-     *
-     * @param controllerDAO corresponding dao
-     * @param ioManger      corresponding iomanager
-     */
-    @Override
-    public void initController(ControllerDAO controllerDAO, IoManger ioManger) {
-
-    }
-
     /**
      * Adding corresponding message to list of other messages
      *
@@ -243,8 +233,12 @@ public class ControllerTVImpl implements GUIController {
      * @param text corresponding text
      */
     @Override
-    public void addTextToMessageList(String text) {
-
+    public void sendMessage(String text) {
+        try {
+            ioManger.sendMessage(currentOpponent,text);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -288,7 +282,7 @@ public class ControllerTVImpl implements GUIController {
             try {
                 ioManger.sendMessage(currentOpponent, messageTextField.getText());
             } catch (Exception e1) {
-                addTextToMessageList(messageTextField.getText());
+                sendMessage(messageTextField.getText());
             }
         });
     }
@@ -325,10 +319,13 @@ public class ControllerTVImpl implements GUIController {
             if (newSelection != null) {
                 currentOpponent = usersTableView.getSelectionModel().getSelectedItem();
                 //Refresh message list
-                currentMessageList = controllerDAO.getMessageHistory(curentUser, currentOpponent).getMessageList();
-                drawMessageList();
+                currentMessageList.clear();
+                currentMessageList.addAll(controllerDAO.getMessageHistory(curentUser, currentOpponent).getMessageList());
             }
         });
     }
 
+    private void setInitialFabric(){
+
+    }
 }

@@ -27,10 +27,11 @@ public class App extends Application {
     public void start(Stage stage) throws Exception{
 
         GUIController guiController =
-                new ControllerTVImpl(new IOmanagerImpl(),new ControllerDAOImpl());
+                new ControllerTVImpl(new IOmanagerImpl(),getTestData());
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource(
                         "/sampleTableView.fxml" ));
+
         loader.setController(guiController);
 
         stage.initStyle(StageStyle.DECORATED);
@@ -52,8 +53,6 @@ public class App extends Application {
     }
 
     public static ControllerDAO getTestData(){
-        ControllerDAO controllerDAO = new ControllerDAOImpl();
-
         ObservableList<User> userObservableList = FXCollections.observableArrayList();
         userListModel = new UserListModelImpl(userObservableList);
         User user1 = new UserImpl("1 name",1,true,new Image("avatar1.jpg"));
@@ -70,6 +69,6 @@ public class App extends Application {
         messages.add(new MessageImpl(new Date(),"Hi all",user1,user2));
         messages.add(new MessageImpl(new Date(),"Hi hi",user2,user1));
 
-        return controllerDAO;
+        return new ControllerDAOImpl(messageHistory,userListModel);
     }
 }
