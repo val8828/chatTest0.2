@@ -17,7 +17,7 @@ public interface GUIController extends Initializable {
     void addMessageToMessageList(Message message);
 
     /**
-     * Adding text to message list without sender and receiver
+     * Send text message
      * @param text corresponding text
      */
     void sendMessage(String text);

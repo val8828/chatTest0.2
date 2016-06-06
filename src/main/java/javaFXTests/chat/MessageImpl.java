@@ -10,6 +10,7 @@ public class MessageImpl implements Message {
     private String text;
     private User sender;
     private User receiver;
+    private boolean messageWasRead;
     /**
      * @return date when the message was sent
      */
@@ -36,10 +37,19 @@ public class MessageImpl implements Message {
         return this.receiver;
     }
 
-    public MessageImpl(Date date, String text, User sender, User receiver) {
+    public boolean isMessageWasRead() {
+        return messageWasRead;
+    }
+
+    public void setMessageWasRead(boolean messageWasRead) {
+        this.messageWasRead = messageWasRead;
+    }
+
+    public MessageImpl(Date date, String text, User sender, User receiver, boolean messageWasRead) {
         this.date = date;
         this.text = text;
         this.sender = sender;
         this.receiver = receiver;
+        this.messageWasRead = messageWasRead;
     }
 }

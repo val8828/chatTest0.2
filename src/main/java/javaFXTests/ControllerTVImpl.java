@@ -1,7 +1,9 @@
 package javaFXTests;
 
 import javaFXTests.chat.Message;
+import javaFXTests.chat.MessageImpl;
 import javaFXTests.chat.User;
+import javaFXTests.chat.UserImpl;
 import javaFXTests.chat.noimpl.IoManger;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -17,12 +19,14 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
 
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.text.DateFormat;
 import java.util.*;
 import java.util.function.Consumer;
 
 public class ControllerTVImpl implements GUIController {
+    private static final long ONE_DAY_IN_MILLIS = 60 * 60 * 24 * 1000;
 
     public ControllerTVImpl(IoManger ioManger, ControllerDAO controllerDAO) {
 
@@ -45,7 +49,7 @@ public class ControllerTVImpl implements GUIController {
 
     IoManger ioManger;
 
-    User curentUser;
+    User currentUser;
 
     User currentOpponent;
 
@@ -185,7 +189,6 @@ public class ControllerTVImpl implements GUIController {
      * @return date in short or long format
      */
     public String getShortDateString(Date date) {
-        String result;
 
         Date currentDate = new Date();
 
@@ -199,20 +202,19 @@ public class ControllerTVImpl implements GUIController {
 
         int currentDay = cal.get(Calendar.DAY_OF_MONTH);
 
-        long anotherDate = 1;
         Locale local = new Locale("ru", "RU");
 
-        if (currentDate.getTime() > (date.getTime() + 60 * 60 * 24 * 1000 * anotherDate) ||
+        if (currentDate.getTime() > (date.getTime() + ONE_DAY_IN_MILLIS) ||
                 currentDay != day) {
 
             DateFormat df = DateFormat.getDateInstance(DateFormat.DEFAULT, local);
 
-            result = df.format(date);
+            return df.format(date);
         } else {
             DateFormat df = DateFormat.getTimeInstance(DateFormat.DEFAULT, local);
-            result = df.format(date);
+
+            return df.format(date);
         }
-        return result;
     }
 
     /**
@@ -228,14 +230,14 @@ public class ControllerTVImpl implements GUIController {
     }
 
     /**
-     * Adding text to message list without sender and receiver
+     * Send text message
      *
      * @param text corresponding text
      */
     @Override
     public void sendMessage(String text) {
         try {
-            ioManger.sendMessage(currentOpponent,text);
+            ioManger.sendMessage(currentOpponent, text);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -249,11 +251,21 @@ public class ControllerTVImpl implements GUIController {
      */
     @Override
     public void updateUser(int userId, User newValue) {
-        for(User user : userObservableList){
-            if(user.getId() == userId){
-                user = newValue;//TODO Maybe need to use setters??
+        for (User user : userObservableList) {
+            if (user.getId() == userId) {
+                Class ftClass = user.getClass();
+                Field[] fields = ftClass.getDeclaredFields();
+                for(Field field : fields) {
+                    try {
+                        field.setAccessible(true);
+                        field.set(user, field.get(newValue));
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         }
+        usersTableView.refresh();
     }
 
     /**
@@ -306,12 +318,12 @@ public class ControllerTVImpl implements GUIController {
         result.ifPresent(letter -> {
             for (User user : userObservableList) {
                 if (letter.equals(user.getName())) {
-                    curentUser = user;
+                    currentUser = user;
                 }
             }
         });
 
-        userObservableList.remove(curentUser);
+        userObservableList.remove(currentUser);
     }
 
     private void addActionListenerForUserList() {
@@ -320,12 +332,22 @@ public class ControllerTVImpl implements GUIController {
                 currentOpponent = usersTableView.getSelectionModel().getSelectedItem();
                 //Refresh message list
                 currentMessageList.clear();
-                currentMessageList.addAll(controllerDAO.getMessageHistory(curentUser, currentOpponent).getMessageList());
+                currentMessageList.addAll(controllerDAO.getMessageHistory(currentUser, currentOpponent).getMessageList());
+                setMessagesRead(currentMessageList);
             }
         });
     }
 
-    private void setInitialFabric(){
+    private void setInitialFabric() {
 
+    }
+
+    private void setMessagesRead( ObservableList<Message> messageList){
+        for(Message message : messageList){
+            if(message instanceof MessageImpl){
+                MessageImpl message1 = (MessageImpl)message;
+                message1.setMessageWasRead(true);
+            }
+        }
     }
 }

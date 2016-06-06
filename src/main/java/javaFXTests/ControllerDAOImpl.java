@@ -1,9 +1,8 @@
 package javaFXTests;
 
-import javaFXTests.chat.MessageHistory;
-import javaFXTests.chat.User;
-import javaFXTests.chat.UserListModel;
-import javaFXTests.chat.UserListModelImpl;
+import javaFXTests.chat.*;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 /**
  *
@@ -26,7 +25,18 @@ public class ControllerDAOImpl implements ControllerDAO {
      */
     @Override
     public MessageHistory getMessageHistory(User receiver, User sender) {
-        return messageHistory;
+        ObservableList<Message> messages = FXCollections.observableArrayList(messageHistory.getMessageList());
+        ObservableList<Message> toRemove = FXCollections.observableArrayList();
+        for(Message message : messages){
+            User currentReceiver = message.getReceiver();
+            User currentSender = message.getSender();
+            if(!(currentReceiver == receiver && currentSender == sender ||
+                    currentReceiver == sender && currentSender == receiver)){
+                toRemove.add(message);
+            }
+        }
+        messages.removeAll(toRemove);
+        return new MessageHistoryImpl(messages);
     }
 
     /**

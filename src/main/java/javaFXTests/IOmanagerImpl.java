@@ -35,4 +35,8 @@ public class IOmanagerImpl implements IoManger {
     public void setUserRemovedHandler(int userId) {
 
     }
+
+    public void updateUser(int index, User user){
+
+    }
 }
